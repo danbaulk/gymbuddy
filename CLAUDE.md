@@ -36,7 +36,7 @@ All app state lives in one `AppState` object (`src/types.ts`) driven through a s
 
 - **`routines` array order *is* the round-robin rotation order.** `currentIndex` points at the routine that's "next up". `markRoutineDone` records a `Session` and advances `currentIndex` with wraparound (`(i + 1) % len`).
 - Reducer cases that mutate the routines array (`deleteRoutine`, `moveRoutine`) must keep `currentIndex` pointing at the right routine — see how they clamp/follow the current routine. Preserve this when adding routine-list operations.
-- **`draft`** is the in-progress log for the routine being done now, persisted so a mid-session reload at the gym doesn't lose entries. `markRoutineDone` turns the draft into a `Session` (only exercises with a numeric weight are logged) and clears it.
+- **`draft`** is the in-progress log for the routine being done now, persisted so a mid-session reload at the gym doesn't lose entries. `markRoutineDone` turns the draft into a `Session` and clears it. An exercise is logged if it has a numeric weight entered, or if it was ticked done without one — in which case it's logged at its prefilled last weight (`getLastWeight`), counting as a repeat. Exercises that are neither weighed nor ticked (or ticked with no history to prefill) are not logged.
 - An exercise's "last weight" is **derived** by scanning `sessions` newest-first (`getLastWeight`), never stored on the exercise.
 - `Exercise.reps` is an optional configured target shown for reference only — it is never logged in a session.
 - IDs are always `crypto.randomUUID()`.

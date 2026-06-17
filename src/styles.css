@@ -8,6 +8,8 @@
   --primary: #4f8cff;
   --primary-press: #3d73d6;
   --danger: #ff6b6b;
+  --ok: #45c486;
+  --warn: #e0b341;
   --radius: 12px;
   --tabbar-h: 60px;
   color-scheme: dark;
@@ -270,6 +272,23 @@ header {
   border-radius: 999px;
   padding: 2px 8px;
   vertical-align: middle;
+}
+
+/* Stagnation badge: green → yellow → red by cycles-without-improvement. */
+.badge.stale-low {
+  background: var(--ok);
+}
+.badge.stale-mid {
+  background: var(--warn);
+  color: #1a1a1a;
+}
+.badge.stale-high {
+  background: var(--danger);
+}
+
+.beat-last {
+  color: var(--ok);
+  font-weight: 600;
 }
 
 /* Today checklist --------------------------------------------------------- */

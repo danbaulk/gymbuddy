@@ -163,8 +163,21 @@ export function gymReducer(state: AppState, action: Action): AppState {
       if (!routine) return state;
       const draftEntries = state.draft?.routineId === routine.id ? state.draft.entries : {};
       const entries: SessionEntry[] = routine.exercises
-        .map((e) => ({ exerciseId: e.id, weight: draftEntries[e.id]?.weight }))
-        .filter((e): e is SessionEntry => typeof e.weight === 'number' && !Number.isNaN(e.weight));
+        .map((e): SessionEntry | null => {
+          const draft = draftEntries[e.id];
+          const weight = draft?.weight;
+          if (typeof weight === 'number' && !Number.isNaN(weight)) {
+            return { exerciseId: e.id, weight };
+          }
+          // Ticked off without a new weight → assume the prefilled last weight
+          // (i.e. you repeated it). Skip if there's no history to prefill from.
+          if (draft?.done) {
+            const last = getLastWeight(state, routine.id, e.id);
+            if (last !== undefined) return { exerciseId: e.id, weight: last };
+          }
+          return null;
+        })
+        .filter((e): e is SessionEntry => e !== null);
       const session: Session = {
         id: uid(),
         routineId: routine.id,
@@ -199,4 +212,39 @@ export function getLastWeight(
     if (entry) return entry.weight;
   }
   return undefined;
+}
+
+/** Chronological logged weights for an exercise in its routine, oldest first. */
+export function getWeightHistory(
+  state: AppState,
+  routineId: string,
+  exerciseId: string,
+): number[] {
+  const out: number[] = [];
+  for (const s of state.sessions) {
+    if (s.routineId !== routineId) continue;
+    const entry = s.entries.find((e) => e.exerciseId === exerciseId);
+    if (entry) out.push(entry.weight);
+  }
+  return out;
+}
+
+/**
+ * Cycles since this exercise's weight last strictly increased over the previous
+ * logged session — the staleness count. Returns 0 when it improved last time or
+ * there are fewer than two logged sessions to compare. Sessions where the
+ * exercise has no weight (bodyweight / skipped) carry no signal and are ignored.
+ */
+export function getCyclesSinceImproved(
+  state: AppState,
+  routineId: string,
+  exerciseId: string,
+): number {
+  const w = getWeightHistory(state, routineId, exerciseId);
+  let count = 0;
+  for (let i = w.length - 1; i >= 1; i--) {
+    if (w[i] > w[i - 1]) break; // most recent improvement — stop counting
+    count++;
+  }
+  return count;
 }
