@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { gymReducer, getLastWeight } from './reducer';
+import { gymReducer, getLastWeight, getWeightHistory, getCyclesSinceImproved } from './reducer';
 import type { Action } from './reducer';
 import { defaultState, seedState } from './storage';
 import type { AppState } from './types';
@@ -96,7 +96,7 @@ describe('logging and rotation', () => {
     expect(s.currentIndex).toBe(0);
   });
 
-  it('only logs exercises that have a weight entered', () => {
+  it('only logs exercises with a weight entered or ticked off', () => {
     let s = run(defaultState(), { type: 'addRoutine', name: 'Push' });
     const rid = s.routines[0].id;
     s = run(
@@ -110,7 +110,48 @@ describe('logging and rotation', () => {
       { type: 'setDraftWeight', routineId: rid, exerciseId: benchId, weight: 40 },
       { type: 'markRoutineDone', routineId: rid },
     );
+    // Dips was neither weighed nor ticked, so it isn't logged.
     expect(s.sessions[0].entries).toEqual([{ exerciseId: benchId, weight: 40 }]);
+  });
+
+  it('assumes the prefilled last weight when an exercise is ticked off blank', () => {
+    let s = twoRoutines();
+    const pushId = s.routines[0].id;
+    const benchId = s.routines[0].exercises[0].id;
+    const pullId = s.routines[1].id;
+
+    // Baseline of 60 kg, then cycle back to Push.
+    s = run(
+      s,
+      { type: 'setDraftWeight', routineId: pushId, exerciseId: benchId, weight: 60 },
+      { type: 'markRoutineDone', routineId: pushId },
+      { type: 'markRoutineDone', routineId: pullId },
+    );
+    expect(getLastWeight(s, pushId, benchId)).toBe(60);
+
+    // This time enter nothing, just tick Bench off → repeats 60 kg.
+    s = run(
+      s,
+      { type: 'toggleDraftDone', routineId: pushId, exerciseId: benchId },
+      { type: 'markRoutineDone', routineId: pushId },
+    );
+    const last = s.sessions[s.sessions.length - 1];
+    expect(last.entries).toEqual([{ exerciseId: benchId, weight: 60 }]);
+    // A repeat at the same weight counts as a stale cycle.
+    expect(getCyclesSinceImproved(s, pushId, benchId)).toBe(1);
+  });
+
+  it('does not invent a weight for a ticked-off exercise with no history', () => {
+    let s = run(defaultState(), { type: 'addRoutine', name: 'Core' });
+    const rid = s.routines[0].id;
+    s = run(s, { type: 'addExercise', routineId: rid, name: 'Hanging Leg Raises' });
+    const exId = s.routines[0].exercises[0].id;
+    s = run(
+      s,
+      { type: 'toggleDraftDone', routineId: rid, exerciseId: exId },
+      { type: 'markRoutineDone', routineId: rid },
+    );
+    expect(s.sessions[0].entries).toEqual([]);
   });
 });
 
@@ -183,6 +224,102 @@ describe('seedState', () => {
     const rdl = legs2.exercises[0];
     expect(rdl.name).toBe('Romanian Deadlift');
     expect(getLastWeight(s, legs2.id, rdl.id)).toBe(50);
+  });
+});
+
+describe('stagnation detection', () => {
+  /**
+   * Complete one full Push→Pull rotation, logging `weight` for Push's Bench
+   * (omit to leave it bodyweight/blank). Routine + exercise ids stay stable
+   * across cycles, so callers can chain this to simulate repeated sessions.
+   */
+  function cyclePushBench(s: AppState, weight: number | undefined): AppState {
+    const pushId = s.routines[0].id;
+    const benchId = s.routines[0].exercises[0].id;
+    const pullId = s.routines[1].id;
+    const actions: Action[] = [];
+    if (weight !== undefined) {
+      actions.push({ type: 'setDraftWeight', routineId: pushId, exerciseId: benchId, weight });
+    }
+    actions.push({ type: 'markRoutineDone', routineId: pushId });
+    actions.push({ type: 'markRoutineDone', routineId: pullId });
+    return run(s, ...actions);
+  }
+
+  it('reports 0 cycles with no history or a single logged session', () => {
+    let s = twoRoutines();
+    const pushId = s.routines[0].id;
+    const benchId = s.routines[0].exercises[0].id;
+
+    expect(getCyclesSinceImproved(s, pushId, benchId)).toBe(0);
+
+    s = cyclePushBench(s, 60);
+    expect(getCyclesSinceImproved(s, pushId, benchId)).toBe(0); // only one data point
+  });
+
+  it('counts flat sessions and resets when the weight improves', () => {
+    let s = twoRoutines();
+    const pushId = s.routines[0].id;
+    const benchId = s.routines[0].exercises[0].id;
+
+    s = cyclePushBench(s, 60);
+    s = cyclePushBench(s, 60); // flat
+    expect(getCyclesSinceImproved(s, pushId, benchId)).toBe(1);
+
+    s = cyclePushBench(s, 60); // flat again
+    expect(getCyclesSinceImproved(s, pushId, benchId)).toBe(2);
+
+    s = cyclePushBench(s, 65); // improved → reset
+    expect(getCyclesSinceImproved(s, pushId, benchId)).toBe(0);
+  });
+
+  it('treats a weight decrease as not improved', () => {
+    let s = twoRoutines();
+    const pushId = s.routines[0].id;
+    const benchId = s.routines[0].exercises[0].id;
+
+    s = cyclePushBench(s, 60);
+    s = cyclePushBench(s, 65); // improved
+    s = cyclePushBench(s, 62); // below previous → not improved
+    expect(getCyclesSinceImproved(s, pushId, benchId)).toBe(1);
+  });
+
+  it('ignores sessions where the exercise had no weight logged', () => {
+    let s = twoRoutines();
+    const pushId = s.routines[0].id;
+    const benchId = s.routines[0].exercises[0].id;
+
+    s = cyclePushBench(s, 60);
+    s = cyclePushBench(s, 60); // flat → 1
+    s = cyclePushBench(s, undefined); // bodyweight: no data point, carries no signal
+
+    expect(getWeightHistory(s, pushId, benchId)).toEqual([60, 60]);
+    expect(getCyclesSinceImproved(s, pushId, benchId)).toBe(1);
+  });
+
+  it('only considers sessions for the matching routine', () => {
+    let s = twoRoutines();
+    const pushId = s.routines[0].id;
+    const benchId = s.routines[0].exercises[0].id;
+    const pullId = s.routines[1].id;
+    const rowId = s.routines[1].exercises[0].id;
+
+    s = run(
+      s,
+      // Cycle 1: Bench 60, Row 40.
+      { type: 'setDraftWeight', routineId: pushId, exerciseId: benchId, weight: 60 },
+      { type: 'markRoutineDone', routineId: pushId },
+      { type: 'setDraftWeight', routineId: pullId, exerciseId: rowId, weight: 40 },
+      { type: 'markRoutineDone', routineId: pullId },
+      // Cycle 2: Bench left bodyweight, Row 40 (flat).
+      { type: 'markRoutineDone', routineId: pushId },
+      { type: 'setDraftWeight', routineId: pullId, exerciseId: rowId, weight: 40 },
+      { type: 'markRoutineDone', routineId: pullId },
+    );
+
+    // Row stalled (40, 40) but that must not leak into Bench's single data point.
+    expect(getCyclesSinceImproved(s, pushId, benchId)).toBe(0);
+    expect(getCyclesSinceImproved(s, pullId, rowId)).toBe(1);
   });
 });
 

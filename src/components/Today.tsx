@@ -1,6 +1,13 @@
 import { useGym } from '../gymContext';
-import { getLastWeight } from '../reducer';
+import { getCyclesSinceImproved, getLastWeight } from '../reducer';
 import EmptyState from './EmptyState';
+
+/** Map a stale-cycle count to its badge severity class (green → yellow → red). */
+function staleClass(cycles: number): string {
+  if (cycles >= 3) return 'stale-high';
+  if (cycles === 2) return 'stale-mid';
+  return 'stale-low';
+}
 
 export default function Today({ onGoToRoutines }: { onGoToRoutines: () => void }) {
   const { state, dispatch } = useGym();
@@ -35,6 +42,9 @@ export default function Today({ onGoToRoutines }: { onGoToRoutines: () => void }
           {routine.exercises.map((ex) => {
             const last = getLastWeight(state, routine.id, ex.id);
             const entry = draftEntries[ex.id] ?? {};
+            const cycles = getCyclesSinceImproved(state, routine.id, ex.id);
+            const beatLast =
+              last !== undefined && typeof entry.weight === 'number' && entry.weight > last;
             return (
               <li key={ex.id} className={entry.done ? 'row done' : 'row'}>
                 <label className="check">
@@ -52,7 +62,17 @@ export default function Today({ onGoToRoutines }: { onGoToRoutines: () => void }
                 </label>
 
                 <div className="row-main">
-                  <span className="ex-name">{ex.name}</span>
+                  <span className="ex-name">
+                    {ex.name}
+                    {cycles >= 1 ? (
+                      <span
+                        className={`badge ${staleClass(cycles)}`}
+                        aria-label={`${cycles} cycle${cycles === 1 ? '' : 's'} without improvement`}
+                      >
+                        {cycles} cyc
+                      </span>
+                    ) : null}
+                  </span>
                   <span className="muted small">
                     {[
                       ex.reps !== undefined ? `${ex.reps} reps` : null,
@@ -60,6 +80,7 @@ export default function Today({ onGoToRoutines }: { onGoToRoutines: () => void }
                     ]
                       .filter(Boolean)
                       .join(' · ')}
+                    {beatLast ? <span className="beat-last"> · ↑ beat last</span> : null}
                   </span>
                 </div>
 
