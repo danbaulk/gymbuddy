@@ -30,7 +30,7 @@ All app state lives in one `AppState` object (`src/types.ts`) driven through a s
 
 `gymContext.ts` is split out from `store.tsx` on purpose: the `react-refresh/only-export-components` lint rule forbids exporting non-components (the context + hook) from a file that exports a component (`GymProvider`). Don't merge them back together.
 
-`src/App.tsx` is the whole UI shell — a two-tab toggle (`today` / `routines`) held in local `useState`, no router. Components live in `src/components/`.
+`src/App.tsx` is the whole UI shell — a four-tab toggle (`today` / `routines` / `stretches` / `more`) held in local `useState`, no router. Components live in `src/components/`.
 
 ### Key domain invariants
 
@@ -48,4 +48,4 @@ All app state lives in one `AppState` object (`src/types.ts`) driven through a s
 
 ## Project plan
 
-`docs/PROJECT_PLAN.md` is the source of truth for scope and phasing. Phase 1 (core loop: routines, rotation, weight logging, persistence) is complete. **Phase 2 is stagnation detection** ("cycles since improved" per exercise, inline stale badges) — note `Session` history already captures the data this needs. Phase 3 is a standalone stretch-routine timer; Phase 4 is quality-of-life. Accounts, cloud sync, hosting, and a real database are explicitly deferred to a future productionise pass.
+`docs/PROJECT_PLAN.md` is the source of truth for scope and phasing. Phases 1–3 are shipped: Phase 1 (core loop: routines, rotation, weight logging, persistence), Phase 2 (stagnation detection — "cycles since improved" per exercise, inline stale badges, derived from `Session` history) and Phase 3 (standalone stretch routines + tap-to-advance timer). Phase 4 (quality-of-life) is partly built — per-exercise history sparkline and JSON export/import (`importState`) are done; the remaining candidates (round-robin override, sets/notes, configurable stale threshold, stretch-timer audio/auto-advance, per-side stretches, linked warm-ups) are deferred. Accounts, cloud sync, hosting, and a real database are explicitly deferred to a future productionise pass.

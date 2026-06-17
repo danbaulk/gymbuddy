@@ -5,17 +5,23 @@ workout routines (e.g. Push / Pull / Legs), each with its own ordered list of
 exercises. GymBuddy round-robins through the routines and tells you which one is
 next. During a session you log the weight you hit for each exercise on a simple
 checklist and mark the routine done, which advances the rotation. Your last
-weight for each exercise is always shown for reference.
+weight for each exercise is always shown for reference, and exercises whose
+weight hasn't gone up are flagged inline with how many cycles it's been since
+they last improved. There's also a standalone stretches section: build stretch
+routines and run one as a guided, tap-to-advance timer.
 
 Single-user, no login. Everything saves locally in the browser — no accounts, no
 server.
 
 ## Status
 
-Phase 1 (core loop) is complete: configure routines, see what's next, log
-weight-only on a checklist, and mark routines done to advance the rotation, all
-persisting across reloads. See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for
-the full roadmap (next up: stagnation detection, then a stretch-routine timer).
+Phases 1–3 are shipped: the core loop (configure routines, see what's next, log
+weight-only on a checklist, mark routines done to advance the rotation, all
+persisting across reloads), stagnation detection (inline "cycles since improved"
+stale badges), and the standalone stretch-routine timer. Phase 4
+(quality-of-life) is partly done — per-exercise history sparkline and JSON
+export/import are in; the rest is deferred. See
+[`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap.
 
 ## Getting started
 
