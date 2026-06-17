@@ -1,0 +1,346 @@
+:root {
+  --bg: #0f1115;
+  --surface: #181b22;
+  --surface-2: #20242d;
+  --border: #2b303b;
+  --text: #f2f4f8;
+  --muted: #98a0ad;
+  --primary: #4f8cff;
+  --primary-press: #3d73d6;
+  --danger: #ff6b6b;
+  --radius: 12px;
+  --tabbar-h: 60px;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+/* Layout ------------------------------------------------------------------ */
+
+.app {
+  max-width: 520px;
+  margin: 0 auto;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  flex: 1;
+  padding: 20px 16px calc(var(--tabbar-h) + 24px);
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 0 0 4px;
+}
+
+header {
+  margin-bottom: 18px;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin: 0 0 2px;
+}
+
+.muted {
+  color: var(--muted);
+}
+.small {
+  font-size: 0.82rem;
+}
+
+/* Bottom tab bar ---------------------------------------------------------- */
+
+.tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--tabbar-h);
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.tab {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tab.active {
+  color: var(--primary);
+}
+
+/* Buttons ----------------------------------------------------------------- */
+
+.primary {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.primary:active {
+  background: var(--primary-press);
+}
+
+.primary.big {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  font-size: 1.05rem;
+  margin-top: 24px;
+}
+
+.link {
+  background: none;
+  border: none;
+  color: var(--primary);
+  padding: 6px 0;
+  cursor: pointer;
+  font-weight: 600;
+}
+.link.inline {
+  padding: 0;
+}
+
+.danger.ghost {
+  background: none;
+  border: none;
+  color: var(--danger);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 8px 10px;
+}
+
+/* Add row (new routine / exercise) --------------------------------------- */
+
+.add-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.add-row input {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+/* Configured rep-count input (add form + inline in the exercise list). */
+.reps-input {
+  flex: 0 0 64px;
+  width: 64px;
+  text-align: right;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 8px;
+}
+.add-row .reps-input {
+  flex: 0 0 64px;
+}
+
+/* Lists (routines & exercises) ------------------------------------------- */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+}
+
+.reorder {
+  display: flex;
+  flex-direction: column;
+}
+.reorder button {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 30px;
+  height: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.reorder button:first-child {
+  border-radius: 8px 8px 0 0;
+}
+.reorder button:last-child {
+  border-radius: 0 0 8px 8px;
+  border-top: none;
+}
+.reorder button:disabled {
+  opacity: 0.3;
+}
+
+.list-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  padding: 6px 2px;
+  min-width: 0;
+}
+.list-main.edit {
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+.list-main.edit:focus {
+  border-color: var(--border);
+  background: var(--surface-2);
+  outline: none;
+}
+
+.title-input {
+  width: 100%;
+  font-size: 1.4rem;
+  font-weight: 700;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+
+.badge {
+  margin-left: 8px;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 999px;
+  padding: 2px 8px;
+  vertical-align: middle;
+}
+
+/* Today checklist --------------------------------------------------------- */
+
+.checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.row.done {
+  opacity: 0.6;
+}
+.row.done .ex-name {
+  text-decoration: line-through;
+}
+
+.check input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--primary);
+}
+
+.row-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ex-name {
+  font-weight: 600;
+}
+
+.weight {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.weight input {
+  width: 72px;
+  text-align: right;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+}
+.weight .unit {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* Empty state ------------------------------------------------------------- */
+
+.empty {
+  text-align: center;
+  padding-top: 12vh;
+}
+.empty p {
+  margin: 12px auto 24px;
+  max-width: 36ch;
+}
