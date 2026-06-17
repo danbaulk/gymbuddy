@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { gymReducer, getLastWeight, getWeightHistory, getCyclesSinceImproved } from './reducer';
+import {
+  gymReducer,
+  getLastWeight,
+  getWeightHistory,
+  getCyclesSinceImproved,
+} from './reducer';
 import type { Action } from './reducer';
-import { defaultState, seedState } from './storage';
+import { defaultState, normalizeState, seedState } from './storage';
 import type { AppState } from './types';
 
 /** Apply a sequence of actions to a starting state. */
@@ -463,5 +468,80 @@ describe('getLastWeight', () => {
       { type: 'markRoutineDone', routineId: pushId },
     );
     expect(getLastWeight(s, pushId, benchId)).toBe(65);
+  });
+});
+
+describe('setDraftWeight auto-tick', () => {
+  it('marks an exercise done when a weight is entered and un-ticks when cleared', () => {
+    const s0 = twoRoutines();
+    const pushId = s0.routines[0].id;
+    const benchId = s0.routines[0].exercises[0].id;
+
+    const s1 = run(s0, {
+      type: 'setDraftWeight',
+      routineId: pushId,
+      exerciseId: benchId,
+      weight: 60,
+    });
+    expect(s1.draft?.entries[benchId]?.done).toBe(true);
+
+    const s2 = run(s1, {
+      type: 'setDraftWeight',
+      routineId: pushId,
+      exerciseId: benchId,
+      weight: undefined,
+    });
+    expect(s2.draft?.entries[benchId]?.done).toBe(false);
+  });
+});
+
+describe('export / import', () => {
+  it('round-trips a serialized state through normalizeState', () => {
+    const original = seedState();
+    const restored = normalizeState(JSON.parse(JSON.stringify(original)) as unknown);
+    expect(restored).toEqual(original);
+  });
+
+  it('rejects payloads that are not a current-version state', () => {
+    expect(normalizeState({ ...defaultState(), version: 99 })).toBeNull();
+    expect(normalizeState({ routines: [] })).toBeNull(); // missing version
+    expect(normalizeState({ version: 1 })).toBeNull(); // routines not an array
+    expect(normalizeState(null)).toBeNull();
+    expect(normalizeState('not an object')).toBeNull();
+  });
+
+  it('rejects a versioned payload whose nested shape is malformed', () => {
+    // Top-level collections must be arrays...
+    expect(normalizeState({ ...defaultState(), sessions: null })).toBeNull();
+    expect(normalizeState({ ...defaultState(), stretchRoutines: null })).toBeNull();
+    // ...as must the arrays nested inside them.
+    expect(
+      normalizeState({ ...defaultState(), routines: [{ id: 'r', name: 'R', exercises: null }] }),
+    ).toBeNull();
+    expect(
+      normalizeState({
+        ...defaultState(),
+        sessions: [{ id: 's', routineId: 'r', date: 'd', entries: [{ exerciseId: 'e', weight: 'heavy' }] }],
+      }),
+    ).toBeNull();
+  });
+
+  it('clamps an out-of-range currentIndex into the routines array', () => {
+    const payload = { ...twoRoutines(), currentIndex: 99 };
+    const restored = normalizeState(JSON.parse(JSON.stringify(payload)) as unknown);
+    expect(restored?.currentIndex).toBe(1); // two routines → last valid index is 1
+  });
+
+  it('backfills fields missing from an older export', () => {
+    // A v1 export from before stretch routines existed.
+    const legacy = { version: 1, routines: [], currentIndex: 0, sessions: [], draft: null };
+    const restored = normalizeState(legacy);
+    expect(restored?.stretchRoutines).toEqual([]);
+  });
+
+  it('importState replaces the entire state', () => {
+    const incoming = seedState();
+    const replaced = gymReducer(defaultState(), { type: 'importState', state: incoming });
+    expect(replaced).toBe(incoming);
   });
 });

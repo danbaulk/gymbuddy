@@ -341,16 +341,110 @@ header {
   gap: 4px;
 }
 .weight input {
-  width: 72px;
+  width: 56px;
   text-align: right;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px;
 }
+/* Steppers replace the native number spinners. */
+.weight input::-webkit-outer-spin-button,
+.weight input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.weight input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.weight .step {
+  flex: 0 0 auto;
+  width: 34px;
+  align-self: stretch;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.weight .step:active {
+  background: var(--border);
+}
 .weight .unit {
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+/* Per-exercise history (expandable on the checklist) ---------------------- */
+
+.history-toggle {
+  align-self: flex-start;
+  padding: 2px 0;
+}
+
+.history {
+  list-style: none;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-top: -4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.spark-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+.spark-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex: 0 0 auto;
+  /* Mirror the sparkline's vertical inset (SPARK_PAD/SPARK_H = 1/12 of 72px) so the
+     max/min labels line up with the top and bottom of the plotted line. */
+  padding-block: 6px;
+}
+.spark-axis.single {
+  justify-content: center;
+}
+
+.sparkline {
+  flex: 1;
+  min-width: 0;
+  height: 72px;
+}
+.sparkline polyline {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.sparkline circle {
+  fill: var(--primary);
+}
+
+/* More / backup ----------------------------------------------------------- */
+
+.backup-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 0.9rem;
 }
 
 /* Stretch duration input (add form + inline in the stretch list). */
