@@ -225,6 +225,31 @@ describe('seedState', () => {
     expect(rdl.name).toBe('Romanian Deadlift');
     expect(getLastWeight(s, legs2.id, rdl.id)).toBe(50);
   });
+
+  it('seeds one demo stretch routine with per-stretch durations', () => {
+    const s = seedState();
+    expect(s.stretchRoutines.map((r) => r.name)).toEqual(['Mobility']);
+    const mobility = s.stretchRoutines[0];
+    expect(mobility.stretches.map((st) => st.name)).toEqual([
+      'Thunder Clap Circles',
+      'Hip Swivels',
+      'Side Stretch',
+      'Calf Stretches',
+      'Elephant Walks',
+      'Squats & Pikes',
+      'Cosack Squats',
+      'Deep Lunges',
+      'Pancake Stretch',
+      'Figure 4 Stretch',
+      'Open Book Stretch',
+      'Child Pose',
+      'Cobras',
+      'Neck Stretch & Massage Gun',
+    ]);
+    // All seeded stretches default to 30s.
+    expect(mobility.stretches.every((st) => st.duration === 30)).toBe(true);
+    expect(mobility.stretches).toHaveLength(14);
+  });
 });
 
 describe('stagnation detection', () => {
@@ -320,6 +345,97 @@ describe('stagnation detection', () => {
     // Row stalled (40, 40) but that must not leak into Bench's single data point.
     expect(getCyclesSinceImproved(s, pushId, benchId)).toBe(0);
     expect(getCyclesSinceImproved(s, pullId, rowId)).toBe(1);
+  });
+});
+
+describe('stretch routine CRUD', () => {
+  /** Build a state with one stretch routine named "Cooldown". */
+  function oneStretchRoutine(): AppState {
+    const s = run(defaultState(), { type: 'addStretchRoutine', name: 'Cooldown' });
+    return s;
+  }
+
+  it('adds stretch routines and ignores blank names', () => {
+    const s = run(
+      defaultState(),
+      { type: 'addStretchRoutine', name: 'Mobility' },
+      { type: 'addStretchRoutine', name: '   ' },
+    );
+    expect(s.stretchRoutines.map((r) => r.name)).toEqual(['Mobility']);
+    expect(s.stretchRoutines[0].stretches).toEqual([]);
+  });
+
+  it('renames and deletes stretch routines', () => {
+    let s = oneStretchRoutine();
+    const id = s.stretchRoutines[0].id;
+    s = run(s, { type: 'renameStretchRoutine', id, name: 'Pre-workout' });
+    expect(s.stretchRoutines[0].name).toBe('Pre-workout');
+    s = run(s, { type: 'deleteStretchRoutine', id });
+    expect(s.stretchRoutines).toEqual([]);
+  });
+
+  it('leaves workout routines untouched when editing stretch routines', () => {
+    let s = run(defaultState(), { type: 'addRoutine', name: 'Push' });
+    s = run(s, { type: 'addStretchRoutine', name: 'Cooldown' });
+    s = run(s, { type: 'deleteStretchRoutine', id: s.stretchRoutines[0].id });
+    expect(s.routines.map((r) => r.name)).toEqual(['Push']);
+  });
+});
+
+describe('stretch CRUD', () => {
+  function withStretch(name: string, duration: number): AppState {
+    let s = run(defaultState(), { type: 'addStretchRoutine', name: 'Cooldown' });
+    const rid = s.stretchRoutines[0].id;
+    s = run(s, { type: 'addStretch', routineId: rid, name, duration });
+    return s;
+  }
+
+  it('adds, renames, sets duration, removes and reorders stretches', () => {
+    let s = run(defaultState(), { type: 'addStretchRoutine', name: 'Cooldown' });
+    const rid = s.stretchRoutines[0].id;
+    s = run(
+      s,
+      { type: 'addStretch', routineId: rid, name: 'Hamstring', duration: 30 },
+      { type: 'addStretch', routineId: rid, name: 'Quad', duration: 20 },
+    );
+    expect(s.stretchRoutines[0].stretches.map((st) => st.name)).toEqual(['Hamstring', 'Quad']);
+
+    const hamId = s.stretchRoutines[0].stretches[0].id;
+    s = run(s, { type: 'renameStretch', routineId: rid, stretchId: hamId, name: 'Hip Flexor' });
+    expect(s.stretchRoutines[0].stretches[0].name).toBe('Hip Flexor');
+
+    s = run(s, { type: 'setStretchDuration', routineId: rid, stretchId: hamId, duration: 45 });
+    expect(s.stretchRoutines[0].stretches[0].duration).toBe(45);
+
+    s = run(s, { type: 'moveStretch', routineId: rid, stretchId: hamId, dir: 1 });
+    expect(s.stretchRoutines[0].stretches.map((st) => st.name)).toEqual(['Quad', 'Hip Flexor']);
+
+    s = run(s, { type: 'removeStretch', routineId: rid, stretchId: hamId });
+    expect(s.stretchRoutines[0].stretches.map((st) => st.name)).toEqual(['Quad']);
+  });
+
+  it('ignores blank stretch names', () => {
+    let s = run(defaultState(), { type: 'addStretchRoutine', name: 'Cooldown' });
+    const rid = s.stretchRoutines[0].id;
+    s = run(s, { type: 'addStretch', routineId: rid, name: '  ', duration: 30 });
+    expect(s.stretchRoutines[0].stretches).toEqual([]);
+  });
+
+  it('clamps non-positive or non-finite durations up to at least 1 second', () => {
+    let s = withStretch('Hamstring', 0);
+    expect(s.stretchRoutines[0].stretches[0].duration).toBe(1);
+
+    const rid = s.stretchRoutines[0].id;
+    const stId = s.stretchRoutines[0].stretches[0].id;
+    s = run(s, { type: 'setStretchDuration', routineId: rid, stretchId: stId, duration: -5 });
+    expect(s.stretchRoutines[0].stretches[0].duration).toBe(1);
+
+    s = run(s, { type: 'setStretchDuration', routineId: rid, stretchId: stId, duration: NaN });
+    expect(s.stretchRoutines[0].stretches[0].duration).toBe(1);
+
+    // Fractional seconds are truncated to a whole number.
+    s = run(s, { type: 'setStretchDuration', routineId: rid, stretchId: stId, duration: 30.7 });
+    expect(s.stretchRoutines[0].stretches[0].duration).toBe(30);
   });
 });
 

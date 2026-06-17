@@ -30,6 +30,19 @@ export type DraftEntry = {
   done?: boolean;
 };
 
+export type Stretch = {
+  id: string;
+  name: string;
+  duration: number; // seconds
+};
+
+/** A named stretch routine; its `stretches` array order is the run order. */
+export type StretchRoutine = {
+  id: string;
+  name: string;
+  stretches: Stretch[];
+};
+
 /**
  * The in-progress log for the routine currently being done. Persisted so a
  * mid-session reload at the gym doesn't lose what's been logged so far.
@@ -45,4 +58,5 @@ export type AppState = {
   currentIndex: number; // index into routines = the routine that's "next up"
   sessions: Session[]; // completed sessions, in chronological order
   draft: Draft;
+  stretchRoutines: StretchRoutine[]; // standalone stretch routines (no rotation)
 };

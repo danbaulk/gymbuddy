@@ -353,6 +353,61 @@ header {
   font-size: 0.85rem;
 }
 
+/* Stretch duration input (add form + inline in the stretch list). */
+.dur-input {
+  flex: 0 0 64px;
+  width: 64px;
+  text-align: right;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 8px;
+}
+.dur {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.dur .unit {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* Stretch runner ---------------------------------------------------------- */
+
+.runner {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8vh;
+}
+.runner-progress {
+  margin: 0;
+}
+.runner-stretch {
+  font-size: 1.8rem;
+  margin: 4px 0;
+}
+.runner-count {
+  font-size: 4.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  margin: 8px 0;
+}
+.runner-next {
+  font-size: 1rem;
+  margin: 0 0 8px;
+}
+.runner .primary.big {
+  max-width: 320px;
+}
+.runner .link {
+  margin-top: 4px;
+}
+
 /* Empty state ------------------------------------------------------------- */
 
 .empty {

@@ -1,4 +1,13 @@
-import type { AppState, Draft, DraftEntry, Routine, Session, SessionEntry } from './types';
+import type {
+  AppState,
+  Draft,
+  DraftEntry,
+  Routine,
+  Session,
+  SessionEntry,
+  Stretch,
+  StretchRoutine,
+} from './types';
 
 export type Action =
   | { type: 'addRoutine'; name: string }
@@ -12,7 +21,15 @@ export type Action =
   | { type: 'moveExercise'; routineId: string; exerciseId: string; dir: -1 | 1 }
   | { type: 'setDraftWeight'; routineId: string; exerciseId: string; weight: number | undefined }
   | { type: 'toggleDraftDone'; routineId: string; exerciseId: string }
-  | { type: 'markRoutineDone'; routineId: string };
+  | { type: 'markRoutineDone'; routineId: string }
+  | { type: 'addStretchRoutine'; name: string }
+  | { type: 'renameStretchRoutine'; id: string; name: string }
+  | { type: 'deleteStretchRoutine'; id: string }
+  | { type: 'addStretch'; routineId: string; name: string; duration: number }
+  | { type: 'renameStretch'; routineId: string; stretchId: string; name: string }
+  | { type: 'setStretchDuration'; routineId: string; stretchId: string; duration: number }
+  | { type: 'removeStretch'; routineId: string; stretchId: string }
+  | { type: 'moveStretch'; routineId: string; stretchId: string; dir: -1 | 1 };
 
 function uid(): string {
   return crypto.randomUUID();
@@ -39,6 +56,23 @@ function updateRoutine(state: AppState, routineId: string, fn: (r: Routine) => R
     ...state,
     routines: state.routines.map((r) => (r.id === routineId ? fn(r) : r)),
   };
+}
+
+function updateStretchRoutine(
+  state: AppState,
+  routineId: string,
+  fn: (r: StretchRoutine) => StretchRoutine,
+): AppState {
+  return {
+    ...state,
+    stretchRoutines: state.stretchRoutines.map((r) => (r.id === routineId ? fn(r) : r)),
+  };
+}
+
+/** A stretch lasts at least one second; coerce anything else to a sane value. */
+function clampDuration(seconds: number): number {
+  if (!Number.isFinite(seconds)) return 1;
+  return Math.max(1, Math.trunc(seconds));
 }
 
 /** Patch a single exercise's draft entry, creating the draft for this routine if needed. */
@@ -192,6 +226,72 @@ export function gymReducer(state: AppState, action: Action): AppState {
         currentIndex,
         draft: null,
       };
+    }
+
+    case 'addStretchRoutine': {
+      const name = action.name.trim();
+      if (!name) return state;
+      const routine: StretchRoutine = { id: uid(), name, stretches: [] };
+      return { ...state, stretchRoutines: [...state.stretchRoutines, routine] };
+    }
+
+    case 'renameStretchRoutine': {
+      // Allow empty while typing — the input is controlled directly off state.
+      return {
+        ...state,
+        stretchRoutines: state.stretchRoutines.map((r) =>
+          r.id === action.id ? { ...r, name: action.name } : r,
+        ),
+      };
+    }
+
+    case 'deleteStretchRoutine': {
+      return {
+        ...state,
+        stretchRoutines: state.stretchRoutines.filter((r) => r.id !== action.id),
+      };
+    }
+
+    case 'addStretch': {
+      const name = action.name.trim();
+      if (!name) return state;
+      const stretch: Stretch = { id: uid(), name, duration: clampDuration(action.duration) };
+      return updateStretchRoutine(state, action.routineId, (r) => ({
+        ...r,
+        stretches: [...r.stretches, stretch],
+      }));
+    }
+
+    case 'renameStretch': {
+      return updateStretchRoutine(state, action.routineId, (r) => ({
+        ...r,
+        stretches: r.stretches.map((s) =>
+          s.id === action.stretchId ? { ...s, name: action.name } : s,
+        ),
+      }));
+    }
+
+    case 'setStretchDuration': {
+      return updateStretchRoutine(state, action.routineId, (r) => ({
+        ...r,
+        stretches: r.stretches.map((s) =>
+          s.id === action.stretchId ? { ...s, duration: clampDuration(action.duration) } : s,
+        ),
+      }));
+    }
+
+    case 'removeStretch': {
+      return updateStretchRoutine(state, action.routineId, (r) => ({
+        ...r,
+        stretches: r.stretches.filter((s) => s.id !== action.stretchId),
+      }));
+    }
+
+    case 'moveStretch': {
+      return updateStretchRoutine(state, action.routineId, (r) => {
+        const stretches = move(r.stretches, action.stretchId, action.dir);
+        return stretches ? { ...r, stretches } : r;
+      });
     }
 
     default:

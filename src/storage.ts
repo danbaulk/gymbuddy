@@ -1,11 +1,19 @@
-import type { AppState, Exercise, Routine, Session, SessionEntry } from './types';
+import type {
+  AppState,
+  Exercise,
+  Routine,
+  Session,
+  SessionEntry,
+  Stretch,
+  StretchRoutine,
+} from './types';
 
 const STORAGE_KEY = 'gymbuddy:state';
 const CURRENT_VERSION = 1 as const;
 
 // Bumping SEED_VERSION re-runs the one-time seed below (replacing saved data once).
 const SEED_KEY = 'gymbuddy:seedVersion';
-const SEED_VERSION = 1 as const;
+const SEED_VERSION = 2 as const;
 
 export function defaultState(): AppState {
   return {
@@ -14,6 +22,7 @@ export function defaultState(): AppState {
     currentIndex: 0,
     sessions: [],
     draft: null,
+    stretchRoutines: [],
   };
 }
 
@@ -124,6 +133,32 @@ const SEED_ROUTINES: SeedRoutine[] = [
   },
 ];
 
+type SeedStretch = { name: string; duration: number };
+type SeedStretchRoutine = { name: string; stretches: SeedStretch[] };
+
+// One demo stretch routine so a fresh install has something runnable.
+const SEED_STRETCH_ROUTINES: SeedStretchRoutine[] = [
+  {
+    name: 'Mobility',
+    stretches: [
+      { name: 'Thunder Clap Circles', duration: 30 },
+      { name: 'Hip Swivels', duration: 30 },
+      { name: 'Side Stretch', duration: 30 },
+      { name: 'Calf Stretches', duration: 30 },
+      { name: 'Elephant Walks', duration: 30 },
+      { name: 'Squats & Pikes', duration: 30 },
+      { name: 'Cosack Squats', duration: 30 },
+      { name: 'Deep Lunges', duration: 30 },
+      { name: 'Pancake Stretch', duration: 30 },
+      { name: 'Figure 4 Stretch', duration: 30 },
+      { name: 'Open Book Stretch', duration: 30 },
+      { name: 'Child Pose', duration: 30 },
+      { name: 'Cobras', duration: 30 },
+      { name: 'Neck Stretch & Massage Gun', duration: 30 },
+    ],
+  },
+];
+
 export function seedState(): AppState {
   const now = new Date().toISOString();
   const routines: Routine[] = [];
@@ -148,5 +183,20 @@ export function seedState(): AppState {
     }
   }
 
-  return { version: CURRENT_VERSION, routines, currentIndex: 0, sessions, draft: null };
+  const stretchRoutines: StretchRoutine[] = SEED_STRETCH_ROUTINES.map((sr) => ({
+    id: crypto.randomUUID(),
+    name: sr.name,
+    stretches: sr.stretches.map(
+      (ss): Stretch => ({ id: crypto.randomUUID(), name: ss.name, duration: ss.duration }),
+    ),
+  }));
+
+  return {
+    version: CURRENT_VERSION,
+    routines,
+    currentIndex: 0,
+    sessions,
+    draft: null,
+    stretchRoutines,
+  };
 }
