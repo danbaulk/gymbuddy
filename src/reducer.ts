@@ -29,7 +29,8 @@ export type Action =
   | { type: 'renameStretch'; routineId: string; stretchId: string; name: string }
   | { type: 'setStretchDuration'; routineId: string; stretchId: string; duration: number }
   | { type: 'removeStretch'; routineId: string; stretchId: string }
-  | { type: 'moveStretch'; routineId: string; stretchId: string; dir: -1 | 1 };
+  | { type: 'moveStretch'; routineId: string; stretchId: string; dir: -1 | 1 }
+  | { type: 'importState'; state: AppState };
 
 function uid(): string {
   return crypto.randomUUID();
@@ -181,7 +182,9 @@ export function gymReducer(state: AppState, action: Action): AppState {
     }
 
     case 'setDraftWeight': {
-      return withDraft(state, action.routineId, action.exerciseId, { weight: action.weight });
+      // Entering a weight auto-ticks the exercise as done; clearing it un-ticks.
+      const done = typeof action.weight === 'number' && !Number.isNaN(action.weight);
+      return withDraft(state, action.routineId, action.exerciseId, { weight: action.weight, done });
     }
 
     case 'toggleDraftDone': {
@@ -293,6 +296,10 @@ export function gymReducer(state: AppState, action: Action): AppState {
         return stretches ? { ...r, stretches } : r;
       });
     }
+
+    case 'importState':
+      // Caller normalizes the incoming state (storage.normalizeState) before dispatch.
+      return action.state;
 
     default:
       return state;

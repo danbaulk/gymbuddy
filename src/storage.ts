@@ -31,6 +31,52 @@ function clampIndex(i: number, len: number): number {
   return Math.min(Math.max(0, Math.trunc(i) || 0), len - 1);
 }
 
+/**
+ * Structural sanity check for a candidate state: every collection the app iterates
+ * must really be an array, logged weights must be numbers, and the draft (if present)
+ * must carry an entries map. Guards import against a malformed-but-versioned file that
+ * would otherwise be persisted and crash every subsequent render.
+ */
+function hasValidShape(s: AppState): boolean {
+  const isArr = Array.isArray;
+  if (!isArr(s.routines) || !isArr(s.sessions) || !isArr(s.stretchRoutines)) return false;
+  if (!s.routines.every((r) => r && isArr(r.exercises))) return false;
+  if (
+    !s.sessions.every(
+      (se) => se && isArr(se.entries) && se.entries.every((e) => e && typeof e.weight === 'number'),
+    )
+  ) {
+    return false;
+  }
+  if (!s.stretchRoutines.every((sr) => sr && isArr(sr.stretches))) return false;
+  if (
+    s.draft !== null &&
+    (typeof s.draft !== 'object' || s.draft.entries === null || typeof s.draft.entries !== 'object')
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Validate and normalize an unknown parsed value into trustworthy AppState, or null
+ * if it isn't a current-version, well-shaped state. Shared by load() and JSON import so
+ * both apply exactly the same checks. No migrations exist yet, so an unknown version is
+ * rejected; missing top-level fields are backfilled from defaults, but a field that is
+ * present with the wrong shape is rejected rather than trusted.
+ */
+export function normalizeState(parsed: unknown): AppState | null {
+  if (!parsed || typeof parsed !== 'object') return null;
+  const candidate = parsed as Partial<AppState>;
+  if (candidate.version !== CURRENT_VERSION || !Array.isArray(candidate.routines)) {
+    return null;
+  }
+  const merged: AppState = { ...defaultState(), ...candidate, version: CURRENT_VERSION };
+  if (!hasValidShape(merged)) return null;
+  merged.currentIndex = clampIndex(merged.currentIndex, merged.routines.length);
+  return merged;
+}
+
 /** Read persisted state. On first run (or a new SEED_VERSION) replace it with the seed. */
 export function load(): AppState {
   try {
@@ -42,14 +88,7 @@ export function load(): AppState {
     }
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
-    const parsed = JSON.parse(raw) as Partial<AppState>;
-    // No migrations exist yet; an unknown version means we can't trust the shape.
-    if (parsed.version !== CURRENT_VERSION || !Array.isArray(parsed.routines)) {
-      return defaultState();
-    }
-    const merged: AppState = { ...defaultState(), ...parsed, version: CURRENT_VERSION };
-    merged.currentIndex = clampIndex(merged.currentIndex, merged.routines.length);
-    return merged;
+    return normalizeState(JSON.parse(raw)) ?? defaultState();
   } catch {
     return defaultState();
   }

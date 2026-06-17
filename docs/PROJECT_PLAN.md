@@ -1,6 +1,6 @@
 # GymBuddy — Plan
 
-_Last updated: 2026-06-14 · Status: discovery_
+_Last updated: 2026-06-17 · Status: Phases 1–3 shipped; Phase 4 (subset: history + JSON backup) built on feat/quality-of-life_
 
 ## What this is
 GymBuddy is a mobile-friendly web app you use at the gym to track your lifts and
@@ -147,3 +147,14 @@ tap Next through to the end state, and confirm the routine persists across a rel
 - 2026-06-14 — Stretches are standalone, not linked to workout routines, for now.
 - 2026-06-14 — Stretch timer placed as Phase 3; Quality-of-life becomes Phase 4; the
   stretch phase is independent of logging/stagnation, so its order is flexible.
+- 2026-06-17 — Phase 4 tackled as a subset on feat/quality-of-life: per-exercise weight
+  history (inline expand on Today — hand-rolled SVG sparkline) and full-state
+  JSON export/import (shared `normalizeState` validation reused by load() and import; an
+  `importState` action). No schema/version change — additive and backward-compatible.
+- 2026-06-17 — Deferred within Phase 4 for now: optional sets/notes per exercise, and a
+  configurable stale threshold / minimum improvement (thresholds stay hardcoded). Still
+  deferred too: stretch-timer upgrades, rotation override, per-side stretches, linked warm-ups.
+- 2026-06-17 — Logging UX tweaks: history panel is sparkline-only (dropped the ever-growing
+  dated list); weight field uses −/+ steppers that step from the last logged weight (so + adds
+  2.5 to the previous weight rather than from zero); entering a weight now auto-ticks the
+  exercise as done (clearing it un-ticks).

@@ -3,8 +3,9 @@ import { GymProvider } from './store';
 import Today from './components/Today';
 import Routines from './components/Routines';
 import Stretches from './components/Stretches';
+import More from './components/More';
 
-type Tab = 'today' | 'routines' | 'stretches';
+type Tab = 'today' | 'routines' | 'stretches' | 'more';
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('today');
@@ -17,8 +18,10 @@ export default function App() {
             <Today onGoToRoutines={() => setTab('routines')} />
           ) : tab === 'routines' ? (
             <Routines />
-          ) : (
+          ) : tab === 'stretches' ? (
             <Stretches />
+          ) : (
+            <More />
           )}
         </main>
 
@@ -40,6 +43,12 @@ export default function App() {
             onClick={() => setTab('stretches')}
           >
             Stretches
+          </button>
+          <button
+            className={tab === 'more' ? 'tab active' : 'tab'}
+            onClick={() => setTab('more')}
+          >
+            More
           </button>
         </nav>
       </div>
