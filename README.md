@@ -21,7 +21,7 @@ persisting across reloads), stagnation detection (inline "cycles since improved"
 stale badges), and the standalone stretch-routine timer. Phase 4
 (quality-of-life) is partly done — per-exercise history sparkline and JSON
 export/import are in; the rest is deferred. See
-[`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap.
+`gymbuddy/PROJECT_PLAN.md` in the private `danbaulk/docs` repo for the full roadmap.
 
 ## Getting started
 
